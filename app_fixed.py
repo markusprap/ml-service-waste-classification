@@ -41,9 +41,10 @@ def create_app():
     
     return app
 
-# Create app instance for production (Gunicorn)
-app = create_app()
-
 if __name__ == '__main__':
+    app = create_app()
     # For local development only
     app.run(host=config.HOST, port=config.PORT, debug=config.DEBUG)
+else:
+    # For production deployment (Gunicorn will use this)
+    app = create_app()
