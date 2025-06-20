@@ -106,3 +106,36 @@ def model_status():
             'model_loaded': False,
             'status': f'Error: {str(e)}'
         }), 500
+
+@api_bp.route('/api/warmup', methods=['GET'])
+def warmup():
+    """Warmup endpoint to pre-load model"""
+    try:
+        print("🔥 Warming up model...")
+        classifier = get_classifier()
+        
+        # Test dengan dummy image
+        import numpy as np
+        from PIL import Image
+        import io
+        
+        # Create small test image
+        dummy_img = Image.new('RGB', (224, 224), color='red')
+        img_bytes = io.BytesIO()
+        dummy_img.save(img_bytes, format='JPEG')
+        img_bytes = img_bytes.getvalue()
+        
+        # Test prediction
+        result = classifier.predict(img_bytes)
+        
+        return jsonify({
+            'status': 'Model warmed up successfully',
+            'model_loaded': True,
+            'test_result': result.get('success', False)
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'Warmup failed',
+            'error': str(e),
+            'model_loaded': False
+        }), 500
