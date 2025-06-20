@@ -1,0 +1,12 @@
+# Railway Configuration
+# This file contains Railway-specific configuration
+
+# Build settings
+[build]
+  nixpacks = true
+
+# Environment variables
+[env]
+  NODE_ENV = "production"
+  ML_SERVICE_DEBUG = "false"
+  LOG_LEVEL = "INFO"
