@@ -16,9 +16,8 @@ class Config:
     HOST = os.environ.get('ML_SERVICE_HOST', '0.0.0.0')
     PORT = int(os.environ.get('PORT', os.environ.get('ML_SERVICE_PORT', 5000)))  # Railway uses PORT
     DEBUG = os.environ.get('ML_SERVICE_DEBUG', 'False').lower() == 'true'
-    
-    # CORS settings - Allow Railway domain and frontend domains
-    cors_origins = os.environ.get('CORS_ORIGINS', 'http://localhost:3000,http://localhost:3001')
+      # CORS settings - Allow Railway domain and frontend domains
+    cors_origins = os.environ.get('CORS_ORIGINS', 'http://localhost:3000,http://localhost:3001,https://backend-waste-classification-production.up.railway.app')
     CORS_ORIGINS = [origin.strip() for origin in cors_origins.split(',')]
     
     # Add Railway domain pattern if in production
