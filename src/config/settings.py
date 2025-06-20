@@ -11,10 +11,10 @@ class Config:
     # Model settings
     MODEL_PATH = os.path.join(os.path.dirname(__file__), '../models/model-update.h5')
     TARGET_IMAGE_SIZE = int(os.environ.get('TARGET_IMAGE_SIZE', 224))
-    
-    # Server settings
+      # Server settings
     HOST = os.environ.get('ML_SERVICE_HOST', '0.0.0.0')
-    PORT = int(os.environ.get('PORT', os.environ.get('ML_SERVICE_PORT', 5000)))  # Railway uses PORT
+    # Railway provides PORT environment variable
+    PORT = int(os.environ.get('PORT', os.environ.get('ML_SERVICE_PORT', 5000)))
     DEBUG = os.environ.get('ML_SERVICE_DEBUG', 'False').lower() == 'true'
       # CORS settings - Allow Railway domain and frontend domains
     cors_origins = os.environ.get('CORS_ORIGINS', 'http://localhost:3000,http://localhost:3001,https://backend-waste-classification-production.up.railway.app')

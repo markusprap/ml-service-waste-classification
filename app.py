@@ -3,6 +3,7 @@ from flask_cors import CORS
 from src.api.routes import api_bp
 from src.config.settings import config
 import logging
+from datetime import datetime
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,11 +19,25 @@ def create_app():
     
     @app.route('/health')
     def health():
-        return {
-            'status': 'healthy',
-            'service': 'ML Classification Service',
-            'version': '1.0.0'
-        }
+        try:
+            # Check if model is loaded
+            from src.models.waste_classifier import WasteClassifier
+            return {
+                'status': 'healthy',
+                'service': 'ML Classification Service',
+                'version': '1.0.0',
+                'model_loaded': True,
+                'timestamp': datetime.now().isoformat()
+            }
+        except Exception as e:
+            return {
+                'status': 'unhealthy',
+                'service': 'ML Classification Service',
+                'version': '1.0.0',
+                'model_loaded': False,
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }, 500
     
     return app
 

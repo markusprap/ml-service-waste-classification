@@ -27,15 +27,20 @@ class WasteClassifier:
             "Alat_Pembersih_Kimia": "B3",
             "Baterai": "B3",
             "Lampu_dan_Elektronik": "B3",
-            "Minyak_dan_Oli_Bekas": "B3",
-            "Obat_dan_Medis": "B3"
+            "Minyak_dan_Oli_Bekas": "B3",            "Obat_dan_Medis": "B3"
         }
 
         try:
+            # Set TensorFlow to use CPU only in production to avoid GPU memory issues
+            import os
+            os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+            
             self.model = tf.keras.models.load_model(model_path, compile=False)
             print("Successfully loaded the model!")
         except Exception as e:
             print(f"Error loading model: {e}")
+            print(f"Model path: {model_path}")
+            print(f"Model file exists: {os.path.exists(model_path)}")
             raise e
 
         class_names_path = os.path.join(os.path.dirname(__file__), "class_names.json")
