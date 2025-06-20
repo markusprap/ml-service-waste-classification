@@ -1,4 +1,4 @@
-﻿import os
+import os
 import json
 import numpy as np
 import tensorflow as tf
@@ -26,7 +26,8 @@ class WasteClassifier:
             "Tekstil": "Anorganik",
             "Alat_Pembersih_Kimia": "B3",
             "Baterai": "B3",
-            "Lampu_dan_Elektronik": "B3",            "Minyak_dan_Oli_Bekas": "B3",
+            "Lampu_dan_Elektronik": "B3",
+            "Minyak_dan_Oli_Bekas": "B3",
             "Obat_dan_Medis": "B3"
         }
 
@@ -34,14 +35,50 @@ class WasteClassifier:
             # Set TensorFlow to use CPU only in production to avoid GPU memory issues
             os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
             
-            self.model = tf.keras.models.load_model(model_path, compile=False)
-            print("Successfully loaded the model!")
+            # Try multiple loading strategies for compatibility
+            try:
+                # First attempt: Standard loading
+                self.model = tf.keras.models.load_model(model_path, compile=False)
+                print("Successfully loaded the model!")
+            except Exception as e1:
+                print(f"Standard loading failed: {e1}")
+                print("Trying compatibility mode...")
+                
+                try:
+                    # Second attempt: With safe_mode=False
+                    self.model = tf.keras.models.load_model(model_path, compile=False, safe_mode=False)
+                    print("Successfully loaded the model with safe_mode=False!")
+                except Exception as e2:
+                    print(f"Safe mode failed: {e2}")
+                    print("Trying with TensorFlow SavedModel format...")
+                    
+                    # Third attempt: Force SavedModel loading
+                    try:
+                        import tensorflow.keras.utils as utils
+                        # Try to load as SavedModel if H5 fails
+                        self.model = tf.saved_model.load(model_path.replace('.h5', ''))
+                        print("Loaded as SavedModel!")
+                    except Exception as e3:
+                        print(f"SavedModel loading failed: {e3}")
+                        
+                        # Fourth attempt: Load weights only approach
+                        print("Attempting to recreate model architecture...")
+                        self.model = self._create_fallback_model()
+                        try:
+                            self.model.load_weights(model_path)
+                            print("Successfully loaded model weights into fallback architecture!")
+                        except Exception as e4:
+                            print(f"Weight loading failed: {e4}")
+                            raise Exception(f"All model loading attempts failed. Last error: {e4}")
+                    
         except Exception as e:
             print(f"Error loading model: {e}")
             print(f"Model path: {model_path}")
             print(f"Model file exists: {os.path.exists(model_path)}")
+            print(f"TensorFlow version: {tf.__version__}")
             raise e
 
+        # Load class names
         class_names_path = os.path.join(os.path.dirname(__file__), "class_names.json")
         if os.path.exists(class_names_path):
             try:
@@ -82,6 +119,28 @@ class WasteClassifier:
             except Exception as e:
                 print(f"Could not determine number of classes: {e}")
                 self.classes = []
+
+    def _create_fallback_model(self):
+        """Create a fallback model architecture compatible with the weights"""
+        try:
+            model = tf.keras.Sequential([
+                tf.keras.layers.Input(shape=(224, 224, 3)),
+                tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
+                tf.keras.layers.MaxPooling2D(2, 2),
+                tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+                tf.keras.layers.MaxPooling2D(2, 2),
+                tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
+                tf.keras.layers.MaxPooling2D(2, 2),
+                tf.keras.layers.Flatten(),
+                tf.keras.layers.Dense(512, activation='relu'),
+                tf.keras.layers.Dropout(0.5),
+                tf.keras.layers.Dense(15, activation='softmax')  # 15 classes
+            ])
+            print("Created fallback model architecture")
+            return model
+        except Exception as e:
+            print(f"Failed to create fallback model: {e}")
+            raise e
 
     def preprocess_image(self, image_bytes):
         try:
