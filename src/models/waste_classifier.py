@@ -26,13 +26,12 @@ class WasteClassifier:
             "Tekstil": "Anorganik",
             "Alat_Pembersih_Kimia": "B3",
             "Baterai": "B3",
-            "Lampu_dan_Elektronik": "B3",
-            "Minyak_dan_Oli_Bekas": "B3",            "Obat_dan_Medis": "B3"
+            "Lampu_dan_Elektronik": "B3",            "Minyak_dan_Oli_Bekas": "B3",
+            "Obat_dan_Medis": "B3"
         }
 
         try:
             # Set TensorFlow to use CPU only in production to avoid GPU memory issues
-            import os
             os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
             
             self.model = tf.keras.models.load_model(model_path, compile=False)
