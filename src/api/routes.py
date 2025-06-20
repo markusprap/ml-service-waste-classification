@@ -1,18 +1,33 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
-from src.models.waste_classifier import WasteClassifier
 import logging
 
 logger = logging.getLogger(__name__)
 api_bp = Blueprint('api', __name__)
 
-classifier = WasteClassifier()
+# Global variable untuk lazy loading
+_classifier = None
+
+def get_classifier():
+    """Lazy load classifier only when needed"""
+    global _classifier
+    if _classifier is None:
+        try:
+            from src.models.waste_classifier import WasteClassifier
+            _classifier = WasteClassifier()
+            logger.info("Classifier loaded successfully")
+        except Exception as e:
+            logger.error(f"Failed to load classifier: {e}")
+            raise e
+    return _classifier
 
 @api_bp.route('/health', methods=['GET'])
 def health_check():
     return jsonify({
         'status': 'healthy',
-        'time': datetime.now().isoformat()
+        'time': datetime.now().isoformat(),
+        'service': 'ML Classification Service',
+        'version': '1.0.0'
     })
 
 @api_bp.route('/api/classify', methods=['POST'])
@@ -23,119 +38,71 @@ def classify_waste():
                 'success': False,
                 'error': 'No image file provided'
             }), 400
-        
-        file = request.files['image']
-        
-        if file.filename == '':
+
+        image_file = request.files['image']
+        if not image_file.filename:
             return jsonify({
                 'success': False,
-                'error': 'No selected file'
+                'error': 'Empty image file'
             }), 400
+
+        image_bytes = image_file.read()
+        if not image_bytes:
+            return jsonify({
+                'success': False,
+                'error': 'Empty image content'
+            }), 400
+        
+        # Lazy load classifier here
+        try:
+            classifier = get_classifier()
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': f'Model loading failed: {str(e)}'
+            }), 500
             
-        image_bytes = file.read()
-        
-        lang = request.args.get('lang', 'en')
-        if lang not in ['en', 'id']:
-            lang = 'en'
-        
-        logger.info(f'Processing classification request: filename={file.filename}, lang={lang}')
-        
         result = classifier.predict(image_bytes)
         
         if not result['success']:
-            logger.error(f'Classification failed: {result.get("error")}')
-            return jsonify(result), 400
-        
-        response = {
+            return jsonify({
+                'success': False,
+                'error': result.get('error', 'Classification failed')
+            }), 500
+
+        return jsonify({
             'success': True,
             'data': {
                 'subcategory': result['subcategory'],
                 'main_category': result['main_category'],
                 'confidence': result['confidence']
             }
-        }
-        
-        logger.info(f'Classification successful: subcategory={result["subcategory"]}, main_category={result["main_category"]}, confidence={result["confidence"]:.2f}')
-        return jsonify(response)
-        
+        }), 200
+
     except Exception as e:
-        logger.exception('Error processing classification request')
+        logger.error(f"Classification error: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
 
-@api_bp.route('/api/model-info', methods=['GET'])
-def get_model_info():
+@api_bp.route('/api/model-status', methods=['GET'])
+def model_status():
+    """Check if model is loaded"""
+    global _classifier
     try:
-        if hasattr(classifier.model, 'output_shape'):
-            output_shape = classifier.model.output_shape
+        if _classifier is None:
+            return jsonify({
+                'model_loaded': False,
+                'status': 'Model not loaded yet'
+            })
         else:
-            output_shape = classifier.model.layers[-1].output_shape
-            
-        try:
-            total_params = classifier.model.count_params()
-        except:
-            total_params = "Unknown"
-            
-        category_details = []
-        category_descriptions = {
-            "cardboard": {"id": "Karton/Kardus", "type": "Recyclable", "disposal": "Daur ulang"},
-            "glass": {"id": "Kaca", "type": "Recyclable", "disposal": "Daur ulang"},
-            "metal": {"id": "Logam/Kaleng", "type": "Recyclable", "disposal": "Daur ulang"},
-            "paper": {"id": "Kertas", "type": "Recyclable", "disposal": "Daur ulang"},
-            "plastic": {"id": "Plastik", "type": "Recyclable", "disposal": "Daur ulang"},
-            "trash": {"id": "Sampah Umum", "type": "Inorganic", "disposal": "Buang biasa"},
-            "battery": {"id": "Baterai", "type": "Hazardous", "disposal": "Limbah berbahaya"},
-            "biological": {"id": "Biologis", "type": "Organic", "disposal": "Kompos"},
-            "brown-glass": {"id": "Kaca Coklat", "type": "Recyclable", "disposal": "Daur ulang"},
-            "clothes": {"id": "Pakaian", "type": "Reusable", "disposal": "Donasi/daur ulang"},
-            "green-glass": {"id": "Kaca Hijau", "type": "Recyclable", "disposal": "Daur ulang"},
-            "shoes": {"id": "Sepatu", "type": "Reusable", "disposal": "Donasi/daur ulang"},
-            "white-glass": {"id": "Kaca Putih", "type": "Recyclable", "disposal": "Daur ulang"},
-            "organic": {"id": "Organik", "type": "Organic", "disposal": "Kompos"},
-            "other": {"id": "Lainnya", "type": "Mixed", "disposal": "Cek manual"}
-        }
-        
-        for i, category in enumerate(classifier.classes):
-            details = category_descriptions.get(category, {
-                "id": category.title(),
-                "type": "Unknown",
-                "disposal": "Cek manual"
+            return jsonify({
+                'model_loaded': True,
+                'status': 'Model ready for classification'
             })
-            
-            category_details.append({
-                "index": i,
-                "name": category,
-                "name_id": details["id"],
-                "type": details["type"],
-                "disposal": details["disposal"]
-            })
-        
-        response = {
-            'success': True,
-            'model_info': {
-                'model_file': 'model-update.h5',
-                'using_fallback': classifier.using_fallback,
-                'target_size': classifier.target_size,
-                'output_shape': output_shape,
-                'total_parameters': total_params,
-                'num_classes': len(classifier.classes),
-                'model_type': f"{len(classifier.classes)}-class waste classification model"
-            },
-            'categories': {
-                'total': len(classifier.classes),
-                'list': classifier.classes,
-                'details': category_details
-            }
-        }
-        
-        logger.info(f'Model info requested - {len(classifier.classes)} categories available')
-        return jsonify(response)
-        
     except Exception as e:
-        logger.exception('Error getting model info')
         return jsonify({
-            'success': False,
-            'error': str(e)
+            'model_loaded': False,
+            'status': f'Error: {str(e)}'
         }), 500
