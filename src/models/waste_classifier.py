@@ -7,8 +7,16 @@ import io
 
 class WasteClassifier:
     def __init__(self):
-        model_path = os.path.join(os.path.dirname(__file__), "model-update.h5")
-        print(f"Loading model from: {model_path}")
+        # Try to use the newly trained model first
+        trained_model_path = os.path.join(os.path.dirname(__file__), "model-trained.h5")
+        fallback_model_path = os.path.join(os.path.dirname(__file__), "model-update.h5")
+        
+        if os.path.exists(trained_model_path):
+            model_path = trained_model_path
+            print(f"Loading newly trained model from: {model_path}")
+        else:
+            model_path = fallback_model_path
+            print(f"Loading fallback model from: {model_path}")
         self.model = None
         self.target_size = (224, 224)
         self.classes = None
@@ -37,25 +45,18 @@ class WasteClassifier:
         try:
             # Try to load model with various compatibility settings
             print("Attempting to load TensorFlow model...")
-              # Method 1: Standard loading
+            
+            # Method 1: Standard loading
             try:
                 self.model = tf.keras.models.load_model(model_path, compile=False)
                 print("✅ Model loaded successfully with standard method!")
             except Exception as e1:
                 print(f"❌ Standard loading failed: {e1}")
                 
-                # Method 2: Load with custom objects and compatibility fixes
+                # Method 2: Load with custom objects for InputLayer compatibility
                 try:
-                    def fixed_input_layer(**kwargs):
-                        # Convert batch_shape to input_shape if present
-                        if 'batch_shape' in kwargs:
-                            batch_shape = kwargs.pop('batch_shape')
-                            if batch_shape and len(batch_shape) > 1:
-                                kwargs['input_shape'] = batch_shape[1:]
-                        return tf.keras.layers.InputLayer(**kwargs)
-                    
                     custom_objects = {
-                        'InputLayer': fixed_input_layer,
+                        'InputLayer': tf.keras.layers.InputLayer,
                         'Dense': tf.keras.layers.Dense,
                         'Conv2D': tf.keras.layers.Conv2D,
                         'MaxPooling2D': tf.keras.layers.MaxPooling2D,
@@ -67,21 +68,19 @@ class WasteClassifier:
                         compile=False, 
                         custom_objects=custom_objects
                     )
-                    print("✅ Model loaded successfully with compatibility fixes!")
+                    print("✅ Model loaded successfully with custom objects!")
                 except Exception as e2:
-                    print(f"❌ Compatibility loading failed: {e2}")
+                    print(f"❌ Custom objects loading failed: {e2}")
                     
-                    # Method 3: Try with safe loading
+                    # Method 3: Try with different TF compatibility
                     try:
-                        # Use safe_mode to skip problematic layers
-                        self.model = tf.keras.models.load_model(
-                            model_path, 
-                            compile=False,
-                            safe_mode=False
-                        )
-                        print("✅ Model loaded successfully with safe mode!")
+                        # Disable eager execution temporarily
+                        tf.compat.v1.disable_eager_execution()
+                        self.model = tf.keras.models.load_model(model_path, compile=False)
+                        tf.compat.v1.enable_eager_execution()
+                        print("✅ Model loaded successfully with v1 compatibility!")
                     except Exception as e3:
-                        print(f"❌ Safe mode loading failed: {e3}")
+                        print(f"❌ V1 compatibility loading failed: {e3}")
                         raise Exception(f"All model loading methods failed. Last error: {e3}")
                         
         except Exception as e:

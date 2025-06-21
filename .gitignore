@@ -167,3 +167,15 @@ Desktop.ini
 test_*.py
 quick_test.py
 pre_deploy_check.py
+
+# Dataset and large files
+dataset/
+kaggle.json
+
+# Temporary model files and scripts
+analyze_model.py
+convert_model.py
+create_compatible_model.py
+fix_model.py
+recreate_model.py
+src/models/model-recreated.h5

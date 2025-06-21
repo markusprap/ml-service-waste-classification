@@ -7,9 +7,8 @@ load_dotenv()
 class Config:
     # Max file size (16MB)
     MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))
-    
-    # Model settings
-    MODEL_PATH = os.path.join(os.path.dirname(__file__), '../models/model-update.h5')
+      # Model settings
+    MODEL_PATH = os.path.join(os.path.dirname(__file__), '../models/model-trained.h5')
     TARGET_IMAGE_SIZE = int(os.environ.get('TARGET_IMAGE_SIZE', 224))
       # Server settings
     HOST = os.environ.get('ML_SERVICE_HOST', '0.0.0.0')
