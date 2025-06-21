@@ -25,7 +25,8 @@ def get_classifier():
                 logger.info("Fallback classifier loaded successfully")
             except Exception as e2:
                 logger.error(f"Failed to load fallback classifier: {e2}")
-            raise e
+                # Both classifiers failed, raise the last error
+                raise e2
     return _classifier
 
 @api_bp.route('/health', methods=['GET'])
