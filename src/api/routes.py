@@ -40,7 +40,10 @@ def health_check():
 @api_bp.route('/api/classify', methods=['POST'])
 def classify_waste():
     try:
+        print("🔍 DEBUG: Starting classification...")
+        
         if 'image' not in request.files:
+            print("❌ DEBUG: No image file in request")
             return jsonify({
                 'success': False,
                 'error': 'No image file provided'
@@ -48,6 +51,7 @@ def classify_waste():
 
         image_file = request.files['image']
         if not image_file.filename:
+            print("❌ DEBUG: Empty filename")
             return jsonify({
                 'success': False,
                 'error': 'Empty image file'
@@ -55,23 +59,32 @@ def classify_waste():
 
         image_bytes = image_file.read()
         if not image_bytes:
+            print("❌ DEBUG: Empty image content")
             return jsonify({
                 'success': False,
                 'error': 'Empty image content'
             }), 400
         
+        print(f"✅ DEBUG: Image data read: {len(image_bytes)} bytes")
+        
         # Lazy load classifier here
         try:
+            print("🔍 DEBUG: Getting classifier...")
             classifier = get_classifier()
+            print(f"✅ DEBUG: Classifier obtained: {type(classifier)}")
         except Exception as e:
+            print(f"❌ DEBUG: Model loading failed: {str(e)}")
             return jsonify({
                 'success': False,
                 'error': f'Model loading failed: {str(e)}'
             }), 500
             
+        print("🧠 DEBUG: Starting prediction...")
         result = classifier.predict(image_bytes)
+        print(f"✅ DEBUG: Prediction result: {result}")
         
         if not result['success']:
+            print(f"❌ DEBUG: Classification failed: {result.get('error', 'Unknown error')}")
             return jsonify({
                 'success': False,
                 'error': result.get('error', 'Classification failed')
@@ -132,15 +145,21 @@ def warmup():
         dummy_img.save(img_bytes, format='JPEG')
         img_bytes = img_bytes.getvalue()
         
-        # Test prediction
+        # Test prediction with detailed logging
+        print("🧪 Testing prediction...")
         result = classifier.predict(img_bytes)
+        print(f"🔍 Prediction result: {result}")
         
         return jsonify({
             'status': 'Model warmed up successfully',
             'model_loaded': True,
-            'test_result': result.get('success', False)
+            'test_result': result.get('success', False),
+            'test_details': result  # Add full result for debugging
         })
     except Exception as e:
+        print(f"❌ Warmup error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'status': 'Warmup failed',
             'error': str(e),
