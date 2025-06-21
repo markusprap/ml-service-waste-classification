@@ -13,11 +13,18 @@ def get_classifier():
     global _classifier
     if _classifier is None:
         try:
-            from src.models.waste_classifier import WasteClassifier
+            from src.models.waste_classifier_robust import WasteClassifier
             _classifier = WasteClassifier()
-            logger.info("Classifier loaded successfully")
+            logger.info("Robust classifier loaded successfully")
         except Exception as e:
-            logger.error(f"Failed to load classifier: {e}")
+            logger.error(f"Failed to load robust classifier: {e}")
+            # Fallback to original classifier
+            try:
+                from src.models.waste_classifier import WasteClassifier
+                _classifier = WasteClassifier()
+                logger.info("Fallback classifier loaded successfully")
+            except Exception as e2:
+                logger.error(f"Failed to load fallback classifier: {e2}")
             raise e
     return _classifier
 

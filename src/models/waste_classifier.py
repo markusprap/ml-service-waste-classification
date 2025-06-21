@@ -7,16 +7,24 @@ import io
 
 class WasteClassifier:
     def __init__(self):
-        # Try to use the newly trained model first
+        # Try models in priority order (Railway compatible first for production)
+        smart_model_path = os.path.join(os.path.dirname(__file__), "model-smart.h5")
         trained_model_path = os.path.join(os.path.dirname(__file__), "model-trained.h5")
         fallback_model_path = os.path.join(os.path.dirname(__file__), "model-update.h5")
         
-        if os.path.exists(trained_model_path):
+        # Check if running in Railway (production) or local
+        is_production = os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('PORT')
+        
+        if is_production and os.path.exists(smart_model_path):
+            model_path = smart_model_path
+            print(f"Loading Railway-compatible smart model from: {model_path}")
+        elif os.path.exists(trained_model_path):
             model_path = trained_model_path
             print(f"Loading newly trained model from: {model_path}")
         else:
             model_path = fallback_model_path
             print(f"Loading fallback model from: {model_path}")
+            
         self.model = None
         self.target_size = (224, 224)
         self.classes = None
