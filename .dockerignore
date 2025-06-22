@@ -1,0 +1,49 @@
+# Virtual environments
+tf_216_env/
+tf_test_env/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+DEPLOYMENT_SAFETY_LOG.md
+QUICK_START.md
+
+# Test files
+test_*
+*_test.py
+
+# Backup files
+*.original
+*.backup
+*.bak
+
+# Logs
+*.log
+
+# Batch files (only for local)
+*.bat

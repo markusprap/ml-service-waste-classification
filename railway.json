@@ -1,0 +1,18 @@
+{
+  "build": {
+    "builder": "DOCKERFILE"
+  },
+  "deploy": {
+    "startCommand": "gunicorn --workers=1 --threads=2 --timeout=300 --max-requests=100 --max-requests-jitter=10 --bind=0.0.0.0:$PORT app:app",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  },
+  "environment": {
+    "PORT": "8080",
+    "FLASK_ENV": "production",
+    "TF_CPP_MIN_LOG_LEVEL": "2",
+    "OMP_NUM_THREADS": "2",
+    "PYTHONUNBUFFERED": "1",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  }
+}
