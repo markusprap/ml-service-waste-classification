@@ -24,6 +24,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy the rest of the application
 COPY . .
 
+# Copy startup script
+COPY start.sh .
+RUN chmod +x start.sh
+
 # Environment variables for Railway
 ENV PORT=8080
 ENV FLASK_ENV=production
@@ -31,5 +35,5 @@ ENV FLASK_ENV=production
 # Expose port
 EXPOSE $PORT
 
-# Use gunicorn for production with memory optimization
-CMD ["sh", "-c", "gunicorn --workers=1 --threads=2 --timeout=300 --max-requests=100 --max-requests-jitter=10 --bind=0.0.0.0:$PORT app:app"]
+# Use startup script
+CMD ["./start.sh"]
